@@ -6,13 +6,16 @@ import Data.Conduit
 import Data.Conduit.Network
 import qualified Data.ByteString.Char8 as BC
 import Control.Monad.IO.Class
+import Data.IORef
 import System.IO
 
 main :: IO ()
-main = runTCPServer (serverSettings defaultPort "*") runnr
+main = do
+    n <- newIORef 0
+    runTCPServer (serverSettings defaultPort "*") (runnr n)
 
-runnr appData = do
-    appSource appData $$  conduit =$ sink 0
+runnr n appData = do
+    appSource appData $$  conduit =$ sink n
 
 conduit :: ConduitM BC.ByteString String IO ()
 conduit = do
@@ -23,12 +26,13 @@ conduit = do
              yield . BC.unpack $ s
              conduit
 
-sink :: Int -> Sink String IO ()
+sink :: IORef Int -> Sink String IO ()
 sink state = do
     str <- await
     case str of
          Nothing -> return ()
          (Just s) -> do
             liftIO $ putStrLn s
-            sink . succ $ state
+            liftIO $ modifyIORef' state succ
+            sink state
 
