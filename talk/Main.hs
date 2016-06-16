@@ -12,7 +12,7 @@ main :: IO ()
 main = runTCPServer (serverSettings defaultPort "*") runnr
 
 runnr appData = do
-    appSource appData $$  conduit =$ sink
+    appSource appData $$  conduit =$ sink 0
 
 conduit :: ConduitM BC.ByteString String IO ()
 conduit = do
@@ -23,12 +23,12 @@ conduit = do
              yield . BC.unpack $ s
              conduit
 
-sink :: Sink String IO ()
-sink = do
+sink :: Int -> Sink String IO ()
+sink state = do
     str <- await
     case str of
          Nothing -> return ()
          (Just s) -> do
             liftIO $ putStrLn s
-            sink
+            sink . succ $ state
 
