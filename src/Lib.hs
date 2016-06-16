@@ -1,6 +1,8 @@
 module Lib
-    ( someFunc
+    ( defaultPort
     ) where
 
-someFunc :: IO ()
-someFunc = putStrLn "someFunc"
+import Network
+
+defaultPort :: PortNumber
+defaultPort = 4567
