@@ -4,5 +4,5 @@ module Lib
 
 import Network
 
-defaultPort :: PortNumber
+defaultPort :: Int
 defaultPort = 4567
