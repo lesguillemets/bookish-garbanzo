@@ -11,20 +11,26 @@ import System.IO
 
 main :: IO ()
 main = do
-    n <- newIORef 0
-    runTCPServer (serverSettings defaultPort "*") (runnr n)
+    runTCPServer (serverSettings defaultPort "*") (runnr 0)
 
-runnr n appData = do
-    appSource appData $$  conduit =$ sink n
+runnr n appData =
+    appSource appData $$  conduit n =$ appSink appData
 
-conduit :: ConduitM BC.ByteString String IO ()
-conduit = do
+conduit :: Int -> ConduitM BC.ByteString BC.ByteString IO ()
+conduit n = do
     str <- await
     case str of
          Nothing -> return ()
          (Just s) -> do
-             yield . BC.unpack $ s
-             conduit
+             yield $ BC.concat [
+                 "[\"ex\",",
+                "\"echo '",
+                BC.pack . show $ n,
+                "\t",
+                BC.reverse s,
+                "'\"]\n"
+                 ]
+             conduit (succ n)
 
 sink :: IORef Int -> Sink String IO ()
 sink state = do
