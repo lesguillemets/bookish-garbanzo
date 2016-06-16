@@ -9,5 +9,26 @@ import Control.Monad.IO.Class
 import System.IO
 
 main :: IO ()
-main = runTCPServer (serverSettings defaultPort "*") $ \appData ->
-    appSource appData $$ awaitForever $ liftIO . BC.putStr
+main = runTCPServer (serverSettings defaultPort "*") runnr
+
+runnr appData = do
+    appSource appData $$  conduit =$ sink
+
+conduit :: ConduitM BC.ByteString String IO ()
+conduit = do
+    str <- await
+    case str of
+         Nothing -> return ()
+         (Just s) -> do
+             yield . BC.unpack $ s
+             conduit
+
+sink :: Sink String IO ()
+sink = do
+    str <- await
+    case str of
+         Nothing -> return ()
+         (Just s) -> do
+            liftIO $ putStrLn s
+            sink
+
