@@ -29,7 +29,9 @@ conduit n = do
          Nothing -> return ()
          (Just s) -> do
              logYield $ BC.concat [
-                 "[\"ex\",",
+                 "[",
+                BC.pack . show $ n,
+                ",",
                 "\"echo '",
                 BC.pack . show $ n,
                 "\t",
