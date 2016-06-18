@@ -16,18 +16,24 @@ main = do
 runnr n appData =
     appSource appData $$  conduit n =$ appSink appData
 
+logYield s = do
+    liftIO $ do
+        BC.putStr "Probably sending\t"
+        BC.putStrLn s
+    yield s
+
 conduit :: Int -> ConduitM BC.ByteString BC.ByteString IO ()
 conduit n = do
     str <- await
     case str of
          Nothing -> return ()
          (Just s) -> do
-             yield $ BC.concat [
+             logYield $ BC.concat [
                  "[\"ex\",",
                 "\"echo '",
                 BC.pack . show $ n,
                 "\t",
-                BC.reverse s,
+                BC.reverse "HI",
                 "'\"]\n"
                  ]
              conduit (succ n)
