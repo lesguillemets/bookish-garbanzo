@@ -4,45 +4,53 @@ module Main where
 import Lib
 import Data.Conduit
 import Data.Conduit.Network
+import Data.Conduit.Text
 import qualified Data.ByteString.Char8 as BC
 import Control.Monad.IO.Class
 import Control.Lens
 import Data.Aeson.Lens
+import qualified Data.Text as T
+import Data.Text (Text)
+import qualified Data.Text.IO as TI
+import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 
 jsonString :: BC.ByteString
 jsonString = "[ 1, \"Hello world\"]"
 
+main :: IO ()
 main = do
-    print $ jsonString ^? nth 1 . _String
-    (print :: Maybe Int -> IO ()) $ jsonString ^? nth 0 . _Integral
+    runTCPServer (serverSettings defaultPort "*") runnr
 
-main' :: IO ()
-main' = do
-    runTCPServer (serverSettings defaultPort "*") (runnr 0)
-
-runnr n appData =
-    appSource appData $$  conduit n =$ appSink appData
+runnr appData =
+    appSource appData $$ decode utf8
+                      =$ conduit
+                      =$ encode utf8
+                      =$ appSink appData
 
 logYield s = do
     liftIO $ do
-        BC.putStr "Probably sending\t"
-        BC.putStrLn s
+        TI.putStr "Probably sending\t"
+        TI.putStrLn s
     yield s
 
-conduit :: Int -> ConduitM BC.ByteString BC.ByteString IO ()
-conduit n = do
+conduit :: ConduitM Text Text IO ()
+conduit = do
     str <- await
     case str of
          Nothing -> return ()
          (Just s) -> do
-             logYield $ BC.concat [
-                 "[",
-                "\"ex\"" ,
-                ",",
-                "\"echo '",
-                BC.pack . show $ n,
-                "\t",
-                BC.reverse "HI",
-                "'\"]\n"
-                 ]
-             conduit (succ n)
+             logYield . processmsg $ s
+             conduit
+
+processmsg :: Text -> Text
+processmsg msg =
+    T.concat [
+        "[",
+        T.pack . show $ n,
+        ",\"",
+        T.reverse txt,
+        "\"]"
+    ]
+    where
+        Just n = msg ^? nth 0 . _Integral
+        Just txt = msg ^? nth 1 . _String

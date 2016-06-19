@@ -25,6 +25,7 @@ executable talk
                      , network
                      , transformers
                      , bytestring
+                     , text
                      , conduit
                      , conduit-extra
                      , aeson
