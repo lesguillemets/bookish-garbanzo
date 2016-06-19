@@ -6,11 +6,18 @@ import Data.Conduit
 import Data.Conduit.Network
 import qualified Data.ByteString.Char8 as BC
 import Control.Monad.IO.Class
-import Data.IORef
-import System.IO
+import Control.Lens
+import Data.Aeson.Lens
 
-main :: IO ()
+jsonString :: BC.ByteString
+jsonString = "[ 1, \"Hello world\"]"
+
 main = do
+    print $ jsonString ^? nth 1 . _String
+    (print :: Maybe Int -> IO ()) $ jsonString ^? nth 0 . _Integral
+
+main' :: IO ()
+main' = do
     runTCPServer (serverSettings defaultPort "*") (runnr 0)
 
 runnr n appData =
@@ -30,7 +37,7 @@ conduit n = do
          (Just s) -> do
              logYield $ BC.concat [
                  "[",
-                BC.pack . show $ n,
+                "\"ex\"" ,
                 ",",
                 "\"echo '",
                 BC.pack . show $ n,
@@ -39,14 +46,3 @@ conduit n = do
                 "'\"]\n"
                  ]
              conduit (succ n)
-
-sink :: IORef Int -> Sink String IO ()
-sink state = do
-    str <- await
-    case str of
-         Nothing -> return ()
-         (Just s) -> do
-            liftIO $ putStrLn s
-            liftIO $ modifyIORef' state succ
-            sink state
-
