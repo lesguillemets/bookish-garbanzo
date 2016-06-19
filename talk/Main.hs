@@ -13,6 +13,9 @@ import qualified Data.Text as T
 import Data.Text (Text)
 import qualified Data.Text.IO as TI
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
+import qualified Data.Streaming.Network as SN
+import qualified GHC.Conc as Conc
+import System.Exit (exitSuccess)
 
 jsonString :: BC.ByteString
 jsonString = "[ 1, \"Hello world\"]"
@@ -23,9 +26,19 @@ main = do
 
 runnr appData =
     appSource appData $$ decode utf8
-                      =$ conduit
-                      =$ encode utf8
-                      =$ appSink appData
+                      =$= conduit
+                      =$= encode utf8
+                      =$= appSink' appData
+
+appSink' ad = do
+    c <- await
+    case c of
+         Nothing -> liftIO $ do
+             putStrLn "Quit!"
+             exitSuccess
+         Just x -> do
+             liftIO $ SN.appWrite ad x >> Conc.yield
+             appSink' ad
 
 logYield s = do
     liftIO $ do
@@ -37,7 +50,8 @@ conduit :: ConduitM Text Text IO ()
 conduit = do
     str <- await
     case str of
-         Nothing -> return ()
+         Nothing -> liftIO $ do
+             putStrLn "Nothing left"
          (Just s) -> do
              logYield . processmsg $ s
              conduit
