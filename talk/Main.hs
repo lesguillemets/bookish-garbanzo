@@ -16,17 +16,21 @@ import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import qualified Data.Streaming.Network as SN
 import qualified GHC.Conc as Conc
 import System.Exit (exitSuccess)
+import Control.Concurrent.MVar
 
 jsonString :: BC.ByteString
 jsonString = "[ 1, \"Hello world\"]"
 
 main :: IO ()
 main = do
-    runTCPServer (serverSettings defaultPort "*") runnr
+    exitter <- newEmptyMVar
+    forkTCPServer (serverSettings defaultPort "*") (runnr exitter)
+    takeMVar exitter *> putStrLn "exit."
 
-runnr appData =
+
+runnr ex appData =
     appSource appData $$ decode utf8
-                      =$= conduit
+                      =$= conduit ex
                       =$= encode utf8
                       =$= appSink' appData
 
@@ -46,15 +50,16 @@ logYield s = do
         TI.putStrLn s
     yield s
 
-conduit :: ConduitM Text Text IO ()
-conduit = do
+conduit :: MVar () -> ConduitM Text Text IO ()
+conduit ex = do
     str <- await
     case str of
          Nothing -> liftIO $ do
              putStrLn "Nothing left"
+             putMVar ex ()
          (Just s) -> do
              logYield . processmsg $ s
-             conduit
+             conduit ex
 
 processmsg :: Text -> Text
 processmsg msg =
