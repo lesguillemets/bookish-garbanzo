@@ -4,11 +4,14 @@ module Main where
 import Lib
 import Data.Conduit
 import Data.Conduit.Network
-import Data.Conduit.Text
+import Data.Conduit.Text as DCT
 import qualified Data.ByteString.Char8 as BC
 import Control.Monad.IO.Class
 import Control.Lens
+import Text.XML
+import Text.XML.Lens
 import Data.Aeson.Lens
+
 import qualified Data.Text as T
 import Data.Text (Text)
 import qualified Data.Text.IO as TI
@@ -17,9 +20,6 @@ import qualified Data.Streaming.Network as SN
 import qualified GHC.Conc as Conc
 import System.Exit (exitSuccess)
 import Control.Concurrent.MVar
-
-jsonString :: BC.ByteString
-jsonString = "[ 1, \"Hello world\"]"
 
 main :: IO ()
 main = do

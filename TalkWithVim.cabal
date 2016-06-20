@@ -29,8 +29,10 @@ executable talk
                      , conduit
                      , conduit-extra
                      , aeson
+                     , xml-conduit
                      , lens
                      , lens-aeson
+                     , xml-lens
                      , streaming-commons
   default-language:    Haskell2010
 
