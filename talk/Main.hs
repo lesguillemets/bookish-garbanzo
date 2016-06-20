@@ -30,19 +30,9 @@ main = do
 
 runnr ex appData =
     appSource appData $$ decode utf8
-                      =$= conduit ex
+                      =$= conduit 0 ex
                       =$= encode utf8
-                      =$= appSink' appData
-
-appSink' ad = do
-    c <- await
-    case c of
-         Nothing -> liftIO $ do
-             putStrLn "Quit!"
-             exitSuccess
-         Just x -> do
-             liftIO $ SN.appWrite ad x >> Conc.yield
-             appSink' ad
+                      =$= appSink appData
 
 logYield s = do
     liftIO $ do
@@ -50,8 +40,8 @@ logYield s = do
         TI.putStrLn s
     yield s
 
-conduit :: MVar () -> ConduitM Text Text IO ()
-conduit ex = do
+conduit :: Int -> MVar () -> ConduitM Text Text IO ()
+conduit n ex = do
     str <- await
     case str of
          Nothing -> liftIO $ do
@@ -59,7 +49,15 @@ conduit ex = do
              putMVar ex ()
          (Just s) -> do
              logYield . processmsg $ s
-             conduit ex
+             logYield . T.concat $ [
+                 "[",
+                 "\"ex\",",
+                 "\"echom 'hi",
+                 T.pack $ show n,
+                 "'\"",
+                 "]"
+                 ]
+             conduit (succ n) ex
 
 processmsg :: Text -> Text
 processmsg msg =
